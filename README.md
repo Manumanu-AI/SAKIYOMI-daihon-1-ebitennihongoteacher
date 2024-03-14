@@ -1,0 +1,1 @@
+# SAKIYOMI-daihon-1-ebitennihongoteacher
