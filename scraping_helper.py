@@ -251,8 +251,8 @@ def generate_response_with_llm_for_multiple_namespaces(index, user_input, namesp
     # プロンプトテンプレートの準備
     prompt_template = PromptTemplate.from_template("""
     あなたはInstagramフィードの台本専門の作家です。
-    ユーザーメッセージのメッセージに従い、中国語でInstagramのフィード台本を生成してください。
-    フレーズを紹介するときだけ日本語を使ってください。
+    ユーザーメッセージに従い、中国語でInstagramのフィード台本を生成してください。
+    台本は中国語で書いて、フレーズを紹介するときだけ日本語と中国語をセットで使ってください。
     ----------
     【ユーザーのメッセージ】
     {user_input}
