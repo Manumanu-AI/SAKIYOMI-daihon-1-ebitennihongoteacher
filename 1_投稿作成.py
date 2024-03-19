@@ -23,17 +23,16 @@ with tab1:
         url = st.text_input("参考URL")
         submit_button = st.button('送信')
 
-        if submit_button:
-            if 'last_url' not in st.session_state or st.session_state['last_url'] != url:
-                index = sh.initialize_pinecone()
-                try:
-				# ns1のデータを削除しようと試みる
-                    sh.delete_all_data_in_namespace(index, "ns1")
-                except Exception:
-            # エラーが発生しても何もせずに処理を続行する
-                    pass
+    if submit_button:
+        if 'last_url' not in st.session_state or (st.session_state['last_url'] != url or url == ""):
+            index = sh.initialize_pinecone()
+            try:
+                sh.delete_all_data_in_namespace(index, "ns1")
+            except Exception:
+                pass
 
-                st.session_state['last_url'] = url
+            st.session_state['last_url'] = url
+            if url != "":  # URLが空欄でない場合のみスクレイピングを実行
                 scraped_data = sh.scrape_url(url)
                 combined_text, metadata_list = sh.prepare_text_and_metadata(sh.extract_keys_from_json(scraped_data))
                 chunks = sh.split_text(combined_text)
@@ -41,8 +40,8 @@ with tab1:
                 sh.store_data_in_pinecone(index, embeddings, chunks, metadata_list, "ns1")
                 time.sleep(10)
                 st.success("ウェブサイトを読み込みました！")
-            else:
-                st.info("同じウェブサイトのデータを使用")
+        else:
+            st.info("同じウェブサイトのデータを使用")
 
 
     with col2:
