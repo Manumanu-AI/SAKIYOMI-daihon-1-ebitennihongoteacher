@@ -190,12 +190,10 @@ def extract_text_from_pdf(pdf_file):
         text += page.extract_text() + "\n"
     return text
 
-def store_pdf_data_in_pinecone(index, chunk_embeddings, pdf_file_name, namespace):
+def store_pdf_data_in_pinecone(index, chunk_embeddings, chunks, pdf_file_name, namespace):
     vectors_to_upsert = []
-
     for i, (embedding, chunk) in enumerate(zip(chunk_embeddings, chunks)):
         unique_id = f"pdf-chunk-{i}"  # PDFチャンクのIDを設定
-
         # メタデータにファイル名を使用
         metadata = {
             "pdf_filename": pdf_file_name,  # ファイル名をoriginal_urlとして使用
@@ -204,17 +202,14 @@ def store_pdf_data_in_pinecone(index, chunk_embeddings, pdf_file_name, namespace
             "keywords": [],  # キーワードは空のリスト
             "text_chunk": chunk  # テキストチャンクを追加
         }
-
         # ベクトルとメタデータをリストに追加
         vectors_to_upsert.append({
             "id": unique_id,
             "values": embedding.tolist(),
             "metadata": metadata
         })
-
     # 一度に全てのベクトルをアップロード
     index.upsert(vectors=vectors_to_upsert, namespace=namespace)
-
     # 保存したIDをプリント（オプション）
     for vector in vectors_to_upsert:
         print(f"Saved: {vector['id']}")
