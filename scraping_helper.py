@@ -198,7 +198,7 @@ def store_pdf_data_in_pinecone(index, chunk_embeddings, pdf_file_name, namespace
 
         # メタデータにファイル名を使用
         metadata = {
-            "original_url": pdf_file_name,  # ファイル名をoriginal_urlとして使用
+            "pdf_filename": pdf_file_name,  # ファイル名をoriginal_urlとして使用
             "title": pdf_file_name,  # ファイル名をタイトルとして使用
             "description": "",  # 説明は空
             "keywords": [],  # キーワードは空のリスト
