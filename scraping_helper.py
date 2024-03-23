@@ -16,6 +16,7 @@ from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain.callbacks import tracing_v2_enabled
+from prompt import system_propmt
 
 apify_wcc_endpoint = st.secrets['website_content_crawler_endpoint']
 apifyapi_key = st.secrets['apifyapi_key']
@@ -244,42 +245,7 @@ def generate_response_with_llm_for_multiple_namespaces(index, user_input, namesp
             results[ns] = "エラー: 検索結果が見つかりませんでした。"
 
     # プロンプトテンプレートの準備
-    prompt_template = PromptTemplate.from_template("""
-    输出应以中文为主要语言。
-    あなたはInstagramフィードの台本専門の作家です。
-    中国人向けに、日本語フレーズを学ぶ投稿を作ってもらいます。
-    ユーザーメッセージに従い、中国語でInstagramのフィード台本を生成してください。
-    ユーザーは日本語でインプットをしますが、あなたがアウトプットする台本の言語は中国語です。そのためタイトルから中国語でお願いします。
-    台本は中国語で書いて、フレーズを紹介するときだけ日本語と中国語をセットで使ってください。
-    ----------
-    【ユーザーのメッセージ】
-    {user_input}
-    
-    ----------
-    【台本作成時のポイント】
-    ・必ずビジネス・仕事の場で使える日本語についての台本を書くこと。
-    ・フレーズを紹介するときは、日本語、中国語、台湾語の3つセットで作ること。
-    ・ユーザーインプットの「テーマ」を安直にタイトルに持ってくるのではなく、【過去Instagramで投稿された台本】の"1枚目-表紙 (タイトル)"キーを参照して、適切なタイトルをつけなさい。その際、テーマを自分なりに細分化し、超限定的なテーマを一つ主観で選び投稿を作って下さい。そうすることで、ユーザーは同じ指示で様々なバリエーションを得られます。
-    ・合計8枚以上、10枚以下で書いてください。
-    ・1枚目(表紙)は「フック」と「ベース」で構成されています。「フック」と「ベース」の文字数の合計が24文字以内になるようにしてください。
-    ・練習問題を出すときは、必ず次のページに回答と解説を掲載してください。
-
-    ----------
-    その際、「過去Instagramで投稿された台本」の情報と口調を参照すること。
-    また、今回ユーザーが希望する【テーマの関連情報」を使ってください。
-    ----------
-    【テーマの関連情報】
-    {results_ns1}
-    {results_ns2}
-    ----------
-    【過去Instagramで投稿された台本】
-    {results_ns3}
-    ----------
-    生成する台本のフォーマットは【アウトプット例】と同じにして生成してください。
-    ----------
-    【アウトプット例】
-    {example_plot}
-    """)
+    prompt_template = PromptTemplate.from_template(prompt_template = PromptTemplate(template=system_propmt, input_variables=["user_input", "results_ns1", "results_ns2", "results_ns3", "results_ns4", "results_ns5", "example_plot"]))
 
     # LLMにプロンプトを渡して応答を生成
     llm = ChatOpenAI(model='gpt-4-1106-preview', temperature=0.7)
@@ -294,6 +260,61 @@ def generate_response_with_llm_for_multiple_namespaces(index, user_input, namesp
             "results_ns1": results.get('ns1', '情報なし'),
             "results_ns2": results.get('ns2', '情報なし'),
             "results_ns3": results.get('ns3', '情報なし'),
+            "results_ns4": results.get('ns4', '情報なし'),
+            "results_ns5": results.get('ns5', '情報なし'),
             "example_plot": example_plot
         })
         return response
+
+
+
+
+user_input = "トマトとはを最初に解説して、その後トマトの育て方を詳しく教えてください。 また栄養面からもトマトを育てるメリットを。そして絵文字をたくさんつかってください"
+namespaces = ["ns1", "ns2", "ns3", "ns4"] 
+index = initialize_pinecone()
+response = generate_response_with_llm_for_multiple_namespaces(index, user_input, namespaces)
+print('ひーはー', response)
+
+
+# ここでinitialize_pinecone関数を呼び出してindexオブジェクトを取得
+index = initialize_pinecone()
+
+# インデックスの状態をチェック
+try:
+    index_stats = index.describe_index_stats()
+    print("インデックスの状態:", index_stats)
+except Exception as e:
+    print("接続エラー:", e)
+
+
+"""
+# テスト用のURLを直接指定
+test_url = "https://www.renoveru.jp/journal/14601"
+
+scraped_data = scrape_url(test_url)
+
+# combined_text と metadata_list の準備
+combined_text, metadata_list = prepare_text_and_metadata(extract_keys_from_json(scraped_data))
+
+print(metadata_list)
+
+# テキストをチャンクに分割
+chunks = split_text(combined_text)
+
+
+# チャンクの埋め込みを生成
+embeddings = make_chunks_embeddings(chunks)
+
+print("エンベディングスの数:", len(embeddings))
+
+#print("テスト: データをPineconeに保存")
+store_data_in_pinecone(index, embeddings, chunks, metadata_list, "ns1")
+
+
+# クエリを実行して結果をプリント
+query = "トマトとはを最初に解説して、その後トマトの育て方を詳しく教えてください。 また栄養面からもトマトを育てるメリットを"
+search_results = perform_similarity_search(index, query, "ns1" , top_k=1)
+print(search_results)
+
+delete_all_data_in_namespace(index, "ns1")
+"""
