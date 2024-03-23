@@ -16,7 +16,7 @@ from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain.callbacks import tracing_v2_enabled
-from prompt import system_propmt
+from prompt import system_prompt
 
 apify_wcc_endpoint = st.secrets['website_content_crawler_endpoint']
 apifyapi_key = st.secrets['apifyapi_key']
@@ -245,7 +245,8 @@ def generate_response_with_llm_for_multiple_namespaces(index, user_input, namesp
             results[ns] = "エラー: 検索結果が見つかりませんでした。"
 
     # プロンプトテンプレートの準備
-    prompt_template = PromptTemplate.from_template(prompt_template = PromptTemplate(template=system_propmt, input_variables=["user_input", "results_ns1", "results_ns2", "results_ns3", "results_ns4", "results_ns5", "example_plot"]))
+    # プロンプトテンプレートの準備
+    prompt_template = PromptTemplate(template=system_prompt, input_variables=["user_input", "results_ns1", "results_ns2", "results_ns3", "results_ns4", "results_ns5", "example_plot"]) 
 
     # LLMにプロンプトを渡して応答を生成
     llm = ChatOpenAI(model='gpt-4-1106-preview', temperature=0.7)
