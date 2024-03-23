@@ -11,7 +11,7 @@ example_plotとNS1~4を含めてください。
 '''
 
 
-system_propmt = """
+system_prompt = """
 
     输出应以中文为主要语言。
     あなたはInstagramフィードの台本専門の作家です。
