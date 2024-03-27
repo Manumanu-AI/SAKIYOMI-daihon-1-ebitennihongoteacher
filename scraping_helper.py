@@ -183,7 +183,7 @@ def delete_data_by_url(index, namespace, url):
     index.delete(ids=ids_to_delete, namespace=namespace)
     print(f"ネームスペース【'{namespace}'】から次のURLの全データ削除されました【'{url}'】.")
 
-'''
+
 def extract_text_from_pdf(pdf_file):
     reader = PdfReader(pdf_file)
     text = ""
@@ -191,29 +191,7 @@ def extract_text_from_pdf(pdf_file):
         text += page.extract_text() + "\n"
     return text
 
-    def extract_text_from_pdf(pdf_file):
-    reader = PdfReader(pdf_file)
-    text = ""
-    for page in reader.pages:
-        page_text = page.extract_text()
-        # 不要な改行を削除する
-        page_text = page_text.replace('\n', ' ')
-        text += page_text + " "  # 改行ではなく空白で区切る
-    return text
-'''
-    
 
-import re
-
-def extract_text_from_pdf(pdf_file):
-    reader = PdfReader(pdf_file)
-    text = ""
-    for page in reader.pages:
-        page_text = page.extract_text()
-        # 不要な改行と余分な空白を削除する
-        page_text = re.sub(r'\s+', ' ', page_text.replace('\n', ' ')).strip()
-        text += page_text
-    return text
 
 def store_pdf_data_in_pinecone(index, chunk_embeddings, chunks, pdf_file_name, namespace):
     vectors_to_upsert = []
