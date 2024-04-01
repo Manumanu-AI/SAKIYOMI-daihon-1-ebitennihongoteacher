@@ -17,6 +17,7 @@ from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain.callbacks import tracing_v2_enabled
 from prompt import system_prompt
+import anthropic
 
 apify_wcc_endpoint = st.secrets['website_content_crawler_endpoint']
 apifyapi_key = st.secrets['apifyapi_key']
@@ -191,8 +192,6 @@ def extract_text_from_pdf(pdf_file):
         text += page.extract_text() + "\n"
     return text
 
-
-
 def store_pdf_data_in_pinecone(index, chunk_embeddings, chunks, pdf_file_name, namespace):
     vectors_to_upsert = []
     for i, (embedding, chunk) in enumerate(zip(chunk_embeddings, chunks)):
@@ -218,8 +217,35 @@ def store_pdf_data_in_pinecone(index, chunk_embeddings, chunks, pdf_file_name, n
         print(f"Saved: {vector['id']}")
 
 
+def generate_claude3_response(user_input, example_plot, system_prompt, results_ns1, results_ns2, results_ns3, results_ns4, results_ns5):
+    client = anthropic.Client(
+        api_key=st.secrets["ANTHROPIC_API_KEY"]
+    )
+    example_plot = example_plot.replace("\n", "\\n")
+    system_message = system_prompt.format(
+        user_input=user_input,
+        results_ns1=results_ns1,
+        results_ns2=results_ns2,
+        results_ns3=results_ns3,
+        results_ns4=results_ns4,
+        results_ns5=results_ns5,
+        example_plot=example_plot
+    )
+    message = client.messages.create(
+        model="claude-3-opus-20240229",
+        max_tokens=2048,
+        temperature=0.85,
+        system=system_message,
+        messages=[
+            {"role": "user", "content": user_input},
+        ]
+    )
+    generated_text = message.content[0].text.replace('\\n', '\n')
+    return generated_text
 
-def generate_response_with_llm_for_multiple_namespaces(index, user_input, namespaces):
+
+
+def generate_response_with_llm_for_multiple_namespaces(index, user_input, namespaces, selected_llm):
     results = {}  # 各名前空間の検索結果を格納する辞書
 
     # 名前空間ごとに検索結果を取得
@@ -247,31 +273,45 @@ def generate_response_with_llm_for_multiple_namespaces(index, user_input, namesp
             results[ns] = "エラー: 検索結果が見つかりませんでした。"
 
     # プロンプトテンプレートの準備
-    # プロンプトテンプレートの準備
     prompt_template = PromptTemplate(template=system_prompt, input_variables=["user_input", "results_ns1", "results_ns2", "results_ns3", "results_ns4", "results_ns5", "example_plot"]) 
 
-    # LLMにプロンプトを渡して応答を生成
-    llm = ChatOpenAI(model='gpt-4-1106-preview', temperature=0.7)
-    llm_chain = LLMChain(prompt=prompt_template, llm=llm)
+    # LLMの選択
+    if selected_llm == "GPT-4":
+        llm = ChatOpenAI(model='gpt-4-1106-preview', temperature=0.7)
+        llm_chain = LLMChain(prompt=prompt_template, llm=llm)
+        project_name = st.secrets["LANGCHAIN_PROJECT"]
+        with tracing_v2_enabled(project_name=project_name):
+            response = llm_chain.invoke({
+                "user_input": user_input,
+                "results_ns1": results.get('ns1', '情報なし'),
+                "results_ns2": results.get('ns2', '情報なし'),
+                "results_ns3": results.get('ns3', '情報なし'),
+                "results_ns4": results.get('ns4', '情報なし'),
+                "results_ns5": results.get('ns5', '情報なし'),
+                "example_plot": example_plot
+            })
+    else:
+        response_text = generate_claude3_response(
+            user_input,
+            example_plot,
+            system_prompt,
+            results.get('ns1', '情報なし'),
+            results.get('ns2', '情報なし'),
+            results.get('ns3', '情報なし'),
+            results.get('ns4', '情報なし'),
+            results.get('ns5', '情報なし')
+        )
+        response = {'text': response_text}  # responseを辞書に変換
+    return response
 
-    # st.secretsを使ってプロジェクト名を取得
-    project_name = st.secrets["LANGCHAIN_PROJECT"]
-
-    with tracing_v2_enabled(project_name=project_name):
-        response = llm_chain.invoke({
-            "user_input": user_input,
-            "results_ns1": results.get('ns1', '情報なし'),
-            "results_ns2": results.get('ns2', '情報なし'),
-            "results_ns3": results.get('ns3', '情報なし'),
-            "results_ns4": results.get('ns4', '情報なし'),
-            "results_ns5": results.get('ns5', '情報なし'),
-            "example_plot": example_plot
-        })
-        return response
 
 
 
 
+
+
+
+""""
 user_input = "トマトとはを最初に解説して、その後トマトの育て方を詳しく教えてください。 また栄養面からもトマトを育てるメリットを。そして絵文字をたくさんつかってください"
 namespaces = ["ns1", "ns2", "ns3", "ns4"] 
 index = initialize_pinecone()
@@ -290,7 +330,6 @@ except Exception as e:
     print("接続エラー:", e)
 
 
-"""
 # テスト用のURLを直接指定
 test_url = "https://www.renoveru.jp/journal/14601"
 
