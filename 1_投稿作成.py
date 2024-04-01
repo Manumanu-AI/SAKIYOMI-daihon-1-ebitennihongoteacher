@@ -8,7 +8,7 @@ st.set_page_config(
     layout='wide',
 )
 
-st.title('SAKIYOMI 投稿作成AI')
+st.title('SAKIYOMI 投稿作成AI フィード')
 
 st.sidebar.title('メニュー')
 
@@ -21,6 +21,7 @@ with tab1:
     with col1:
         user_input = st.text_area("生成指示 : 作りたいプロットのイメージを入力", value="""以下の内容で台本を書いてください。\nテーマ：\n\nターゲット：\n\nその他の指示：""", height=300)
         url = st.text_input("参考URL")
+        selected_llm = st.radio("LLMの選択", ("GPT-4", "Claude3"))
         submit_button = st.button('送信')
 
     if submit_button:
@@ -48,10 +49,10 @@ with tab1:
         if submit_button:
             namespaces = ["ns1", "ns2", "ns3", "ns4", "ns5"]
             index = sh.initialize_pinecone()
-            response = sh.generate_response_with_llm_for_multiple_namespaces(index, user_input, namespaces)
-            if response:  # responseがNoneでないことを確認
+            response = sh.generate_response_with_llm_for_multiple_namespaces(index, user_input, namespaces, selected_llm)  # selected_llmを渡す
+            if response:
                 response_text = response.get('text')
-                st.session_state['response_text'] = response_text  # セッション状態にresponse_textを保存
+                st.session_state['response_text'] = response_text
             else:
                 st.session_state['response_text'] = "エラー: プロットを生成できませんでした。"
 
@@ -160,7 +161,7 @@ with tab2:
 
 
             # Pineconeにデータを保存
-            sh.store_pdf_data_in_pinecone(index, embeddings, pdf_file2.name, "ns4")
+            sh.store_pdf_data_in_pinecone(index, embeddings,chunks, pdf_file2.name, "ns4")
             st.success("データをPineconeに登録しました！")
 
         # 全データ削除ボタン
@@ -193,7 +194,7 @@ with tab2:
 
 
             # Pineconeにデータを保存
-            sh.store_pdf_data_in_pinecone(index, embeddings, pdf_file3.name, "ns5")
+            sh.store_pdf_data_in_pinecone(index, embeddings, chunks, pdf_file3.name, "ns5")
             st.success("データをPineconeに登録しました！")
 
         # 全データ削除ボタン
