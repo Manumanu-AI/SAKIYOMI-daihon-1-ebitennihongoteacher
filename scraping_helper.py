@@ -1,5 +1,3 @@
-import requests
-import json
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import requests
@@ -18,6 +16,9 @@ from langchain_openai import ChatOpenAI
 from langchain.callbacks import tracing_v2_enabled
 from prompt import system_prompt
 import anthropic
+from apify_client import ApifyClient
+from ng_url_list import ng_urls
+
 
 apify_wcc_endpoint = st.secrets['website_content_crawler_endpoint']
 apifyapi_key = st.secrets['apifyapi_key']
@@ -26,29 +27,29 @@ pinecone_index_name = st.secrets['PINECONE_INDEX_NAME']
 openai_api_key = st.secrets['OPENAI_API_KEY']
 
 
+def is_ng_url(url):
+    return any(ng_url in url for ng_url in ng_urls)
+
 # URLからコンテンツをスクレイピングする関数
 def scrape_url(url):
-    try:
-        print(f"scrape_url: URL = {url}")  # デバッグ用プリント
-        headers = {"Authorization": f"Bearer {apifyapi_key}"}
-        payload = {"startUrls": [{"url": url}]}
-        response = requests.post(apify_wcc_endpoint, json=payload, headers=headers)
-
-        # print(f"scrape_url: Response = {response.text[:100]}...")  # デバッグ用プリント（応答の最初の100文字を表示）
-        if response.status_code in [200, 201]:
-            return response.text
-        else:
-            raise Exception(f"ステータスコード: {response.status_code}, レスポンス: {response.text}")
-    except Exception as e:
-        raise Exception(f"scrape_urlでエラーが発生しました: {e}")
+    apify_client = ApifyClient('apify_api_akEVaWF0kZKZZT68WMUTvfrvOcAUjm436pIg')
+    actor_call = apify_client.actor('apify/website-content-crawler').call(
+        run_input={
+            'startUrls': [{'url': url}],
+            'maxRequestsPerCrawl': 3,
+            'maxCrawlingDepth': 3,
+        },
+        timeout_secs=120
+    )
+    dataset_items = apify_client.dataset(actor_call['defaultDatasetId']).list_items().items
+    return list(dataset_items)
 
 
     
 # データ内の必要なキーだけを取得する関数
-def extract_keys_from_json(json_data):
-    data = json.loads(json_data)
+def extract_keys_from_json(data):  # 引数名を json_data から data に変更
     extracted_data = []
-    for item in data:
+    for item in data:  # json.loads を使用せずに直接リストを処理
         formatted_data = {
             'url': item.get('url', ''),
             'description': item.get('metadata', {}).get('description', ''),
