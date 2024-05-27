@@ -1,4 +1,11 @@
 import streamlit as st
+st.set_page_config(
+    page_icon='🤖',
+    layout='wide',
+)
+
+st.sidebar.title('メニュー')
+
 custom_css = """
 <style>
     .tighter {
@@ -14,9 +21,13 @@ st.markdown(custom_css, unsafe_allow_html=True)
 st.title('ツールの使い方')
 st.markdown('#')
 
-st.header('台本の生成方法')
 
-st.video('https://youtu.be/SZjbQvWrXYA?si=iI3j92OLbI5YiXfl')
+st.write('ツールを初めて使う人、行き詰まっている人はまずこちらをご視聴ください！', unsafe_allow_html=True)
+st.markdown(
+    """
+    <iframe width="700" height="393" src="https://www.youtube.com/embed/SZjbQvWrXYA?si=qtcq6RAAH0kFY0Jf" frameborder="0" allowfullscreen></iframe>
+    """, unsafe_allow_html=True
+)
 
 st.markdown('#')
 st.subheader('操作方法')
